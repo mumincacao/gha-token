@@ -57,7 +57,7 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release --clean --single-target --id gha-token
+          args: release --clean
 
   lint:
     name: Lint
