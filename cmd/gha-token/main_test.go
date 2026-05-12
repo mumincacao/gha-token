@@ -10,11 +10,20 @@ func TestParseFlagsRequired(t *testing.T) {
 	testCases := []struct {
 		name    string
 		args    []string
+		envKey  string
+		envVal  string
 		wantErr bool
 	}{
 		{
 			name:    "all flags provided",
 			args:    []string{"prog", "--app-id", "123", "--private-key-path", "key.pem", "--owner", "org", "--repository", "repo"},
+			wantErr: false,
+		},
+		{
+			name:    "private key from env",
+			args:    []string{"prog", "--app-id", "123", "--owner", "org", "--repository", "repo"},
+			envKey:  privateKeyEnvVar,
+			envVal:  "-----BEGIN PRIVATE KEY-----\nMIIB...\n-----END PRIVATE KEY-----",
 			wantErr: false,
 		},
 		{
@@ -41,6 +50,10 @@ func TestParseFlagsRequired(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			if tc.envKey != "" {
+				t.Setenv(tc.envKey, tc.envVal)
+			}
+
 			os.Args = tc.args
 			_, err := parseFlags()
 			if (err != nil) != tc.wantErr {
@@ -139,6 +152,45 @@ func TestParseFlagsVersion(t *testing.T) {
 	if !cfg.version {
 		t.Fatal("Expected version to be true")
 	}
+}
+
+func TestResolvePrivateKey(t *testing.T) {
+	t.Run("uses file when provided", func(t *testing.T) {
+		tmpFile, err := os.CreateTemp("", "private-key-*.pem")
+		if err != nil {
+			t.Fatalf("CreateTemp() error = %v", err)
+		}
+		defer os.Remove(tmpFile.Name())
+
+		if _, err := tmpFile.WriteString("file-key"); err != nil {
+			t.Fatalf("WriteString() error = %v", err)
+		}
+		if err := tmpFile.Close(); err != nil {
+			t.Fatalf("Close() error = %v", err)
+		}
+
+		t.Setenv(privateKeyEnvVar, "env-key")
+
+		key, err := resolvePrivateKey(tmpFile.Name())
+		if err != nil {
+			t.Fatalf("resolvePrivateKey() error = %v", err)
+		}
+		if key != "file-key" {
+			t.Fatalf("resolvePrivateKey() = %q, want %q", key, "file-key")
+		}
+	})
+
+	t.Run("uses env when file missing", func(t *testing.T) {
+		t.Setenv(privateKeyEnvVar, "env-key")
+
+		key, err := resolvePrivateKey("")
+		if err != nil {
+			t.Fatalf("resolvePrivateKey() error = %v", err)
+		}
+		if key != "env-key" {
+			t.Fatalf("resolvePrivateKey() = %q, want %q", key, "env-key")
+		}
+	})
 }
 
 func TestParseFlagsDefaultVersion(t *testing.T) {

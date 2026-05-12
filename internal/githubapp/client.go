@@ -67,10 +67,10 @@ func NewClient(opts ClientOptions) *Client {
 	}
 }
 
-func (c *Client) GetInstallationToken(appID, privateKeyPath, owner, repository string) (string, error) {
+func (c *Client) GetInstallationToken(appID, privateKeyPEM, owner, repository string) (string, error) {
 	ctx := context.Background()
 
-	jwtToken, err := buildAppJWT(appID, privateKeyPath)
+	jwtToken, err := buildAppJWT(appID, []byte(privateKeyPEM))
 	if err != nil {
 		return "", err
 	}
@@ -88,13 +88,8 @@ func (c *Client) GetInstallationToken(appID, privateKeyPath, owner, repository s
 	return token, nil
 }
 
-func buildAppJWT(appID, privateKeyPath string) (string, error) {
-	keyBytes, err := os.ReadFile(privateKeyPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read private key file: %w", err)
-	}
-
-	privateKey, err := parseRSAPrivateKey(keyBytes)
+func buildAppJWT(appID string, privateKeyPEM []byte) (string, error) {
+	privateKey, err := parseRSAPrivateKey(privateKeyPEM)
 	if err != nil {
 		return "", err
 	}

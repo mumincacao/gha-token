@@ -27,10 +27,13 @@ mv gha-token /usr/local/bin/
 
 - `--app-id`: GitHub App の App ID
 - `--private-key-path`: GitHub App の private key (PEM) ファイルパス
+- `GITHUB_APP_PRIVATE_KEY`: GitHub App の private key (PEM) 本文
 - `--owner`: リポジトリ owner (organization/user)
 - `--repository`: リポジトリ名
 - `--timeout`: HTTP timeout 秒数 (既定値: 30)
 - `--debug`: デバッグログを標準エラーに出力（機密情報は出力されません）
+
+`--private-key-path` と `GITHUB_APP_PRIVATE_KEY` の両方が指定された場合は、`--private-key-path` を優先します。
 
 ## Usage
 
@@ -39,6 +42,13 @@ mv gha-token /usr/local/bin/
 gha-token \
   --app-id 12345 \
   --private-key-path /path/to/private-key.pem \
+  --owner my-org \
+  --repository my-repo
+
+# Fetch token with env var
+export GITHUB_APP_PRIVATE_KEY="$(cat /path/to/private-key.pem)"
+gha-token \
+  --app-id 12345 \
   --owner my-org \
   --repository my-repo
 

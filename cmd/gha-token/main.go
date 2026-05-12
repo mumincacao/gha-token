@@ -11,6 +11,8 @@ import (
 	"github.com/mumincacao/gha-token/internal/version"
 )
 
+const privateKeyEnvVar = "GITHUB_APP_PRIVATE_KEY"
+
 type config struct {
 	appID      string
 	keyPath    string
@@ -33,6 +35,12 @@ func main() {
 		os.Exit(0)
 	}
 
+	privateKeyPEM, err := resolvePrivateKey(cfg.keyPath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
 	client := githubapp.NewClient(githubapp.ClientOptions{
 		BaseURL: "https://api.github.com",
 		Timeout: cfg.timeout,
@@ -40,7 +48,7 @@ func main() {
 		Stderr:  os.Stderr,
 	})
 
-	token, err := client.GetInstallationToken(cfg.appID, cfg.keyPath, cfg.owner, cfg.repository)
+	token, err := client.GetInstallationToken(cfg.appID, privateKeyPEM, cfg.owner, cfg.repository)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -76,8 +84,8 @@ func parseFlags() (config, error) {
 	if cfg.appID == "" {
 		return config{}, errors.New("--app-id is required")
 	}
-	if cfg.keyPath == "" {
-		return config{}, errors.New("--private-key-path is required")
+	if cfg.keyPath == "" && os.Getenv(privateKeyEnvVar) == "" {
+		return config{}, errors.New("--private-key-path or GITHUB_APP_PRIVATE_KEY is required")
 	}
 	if cfg.owner == "" {
 		return config{}, errors.New("--owner is required")
@@ -91,4 +99,22 @@ func parseFlags() (config, error) {
 
 	cfg.timeout = time.Duration(timeoutSec) * time.Second
 	return cfg, nil
+}
+
+func resolvePrivateKey(privateKeyPath string) (string, error) {
+	if privateKeyPath != "" {
+		keyBytes, err := os.ReadFile(privateKeyPath)
+		if err != nil {
+			return "", fmt.Errorf("failed to read private key file: %w", err)
+		}
+
+		return string(keyBytes), nil
+	}
+
+	privateKeyPEM := os.Getenv(privateKeyEnvVar)
+	if privateKeyPEM == "" {
+		return "", errors.New("--private-key-path or GITHUB_APP_PRIVATE_KEY is required")
+	}
+
+	return privateKeyPEM, nil
 }

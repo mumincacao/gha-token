@@ -105,7 +105,7 @@ func TestBuildAppJWT_Success(t *testing.T) {
 	tmpFile.Close()
 
 	appID := "12345"
-	jwtToken, err := buildAppJWT(appID, tmpFile.Name())
+	jwtToken, err := buildAppJWT(appID, pemData)
 	if err != nil {
 		t.Fatalf("buildAppJWT failed: %v", err)
 	}
@@ -121,11 +121,11 @@ func TestBuildAppJWT_Success(t *testing.T) {
 	}
 }
 
-func TestBuildAppJWT_MissingFile(t *testing.T) {
+func TestBuildAppJWT_InvalidPEM(t *testing.T) {
 	appID := "12345"
-	_, err := buildAppJWT(appID, "/nonexistent/key.pem")
+	_, err := buildAppJWT(appID, []byte("not a valid PEM data"))
 	if err == nil {
-		t.Fatal("Expected error for missing file, got nil")
+		t.Fatal("Expected error for invalid PEM, got nil")
 	}
 }
 
@@ -167,7 +167,7 @@ func TestClientGetInstallationToken_Success(t *testing.T) {
 		Stderr:  io.Discard,
 	})
 
-	token, err := client.GetInstallationToken("12345", tmpFile.Name(), "test-owner", "test-repo")
+	token, err := client.GetInstallationToken("12345", string(pemData), "test-owner", "test-repo")
 	if err != nil {
 		t.Fatalf("GetInstallationToken failed: %v", err)
 	}
@@ -205,7 +205,7 @@ func TestClientGetInstallationToken_InstallationNotFound(t *testing.T) {
 		Stderr:  io.Discard,
 	})
 
-	_, err = client.GetInstallationToken("12345", tmpFile.Name(), "test-owner", "nonexistent-repo")
+	_, err = client.GetInstallationToken("12345", string(pemData), "test-owner", "nonexistent-repo")
 	if err == nil {
 		t.Fatal("Expected error for 404 response, got nil")
 	}
@@ -240,7 +240,7 @@ func TestClientGetInstallationToken_InvalidJSON(t *testing.T) {
 		Stderr:  io.Discard,
 	})
 
-	_, err = client.GetInstallationToken("12345", tmpFile.Name(), "test-owner", "test-repo")
+	_, err = client.GetInstallationToken("12345", string(pemData), "test-owner", "test-repo")
 	if err == nil {
 		t.Fatal("Expected error for invalid JSON response, got nil")
 	}
