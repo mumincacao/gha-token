@@ -20,7 +20,7 @@ archives:
     name_template: "{{ .ProjectName }}.{{ .Version }}.{{ .Os }}.{{ .Arch }}"
     files:
       - gha-token
-    builds:
+    ids:
       - gha-token
 
 changelog:
@@ -31,4 +31,5 @@ release:
   github:
     owner: mumincacao
     name: gha-token
-
+  ids:
+    - binary
